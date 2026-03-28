@@ -1,9 +1,12 @@
 from typing import Dict
+from typing import Dict, List, Optional
+from difflib import get_close_matches
 
 
 class DictionaryModel():
     def __init__(self, file_path: str = 'sources/words.xlsx'):
         self._dictionary: Dict[str, str] = {}
+        self._dictionary: Dict[str, List[str]] = {}
         self._load_from_excel(file_path)
 
     def _load_from_excel(self, file_path: str) -> None:
@@ -59,3 +62,66 @@ class DictionaryModel():
             return ', '.join(translations)
 
         return None
+
+    def find_similar_words(self, word: str, cutoff: float = 0.6, limit: int = 10) -> List[str]:
+        if not word or not isinstance(word, str):
+            return []
+
+        cleaned_word = word.strip().lower()
+        if not cleaned_word:
+            return []
+
+        all_words = list(self._dictionary.keys())
+
+        matches = get_close_matches(
+            cleaned_word,
+            all_words,
+            n=limit,
+            cutoff=cutoff
+        )
+
+        return matches
+
+    def find_similar_words_with_priority(self, word: str, limit: int = 10) -> List[str]:
+        if not word or not isinstance(word, str):
+            return []
+
+        cleaned_word = word.strip().lower()
+        if not cleaned_word:
+            return []
+
+        all_words = list(self._dictionary.keys())
+
+        exact_prefix = []
+        first_word_prefix = []
+        contains = []
+
+        for w in all_words:
+            w_lower = w.lower()
+
+            if w_lower.startswith(cleaned_word):
+                exact_prefix.append(w)
+            elif ' ' in w_lower:
+                first_word = w_lower.split()[0]
+                if first_word.startswith(cleaned_word):
+                    first_word_prefix.append(w)
+            elif cleaned_word in w_lower:
+                contains.append(w)
+
+        close = get_close_matches(cleaned_word, all_words, n=limit, cutoff=0.5)
+
+        result = []
+        seen = set()
+
+        for w in exact_prefix + first_word_prefix + contains + close:
+            if w not in seen and len(result) < limit:
+                result.append(w)
+                seen.add(w)
+
+        return result
+
+    def get_all_words(self) -> List[str]:
+        return list(self._dictionary.keys())
+
+    def get_dictionary_size(self) -> int:
+        return len(self._dictionary)
