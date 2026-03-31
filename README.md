@@ -4,8 +4,7 @@
 
 ## Features
 
-- Automatic translation while typing
-- Word suggestions (up to 5 similar words)
+- Word suggestions (up to 7 similar words)
 - Excel dictionary support with merged cells
 - Fast search with prefix and fuzzy matching
 - Cross-platform (Windows, macOS, Linux)
