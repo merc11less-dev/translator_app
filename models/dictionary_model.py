@@ -1,17 +1,30 @@
-from typing import Dict
+import os
+import sys
 from typing import Dict, List, Optional
 from difflib import get_close_matches
 
 
 class DictionaryModel():
     def __init__(self, file_path: str = 'sources/words.xlsx'):
-        self._dictionary: Dict[str, str] = {}
         self._dictionary: Dict[str, List[str]] = {}
-        self._load_from_excel(file_path)
+
+        if getattr(sys, 'frozen', False):
+            base_path = sys._MEIPASS
+            full_path = os.path.join(base_path, file_path)
+        else:
+            base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            full_path = os.path.join(base_path, file_path)
+
+        self._load_from_excel(full_path)
 
     def _load_from_excel(self, file_path: str) -> None:
         try:
             from openpyxl import load_workbook
+
+            if not os.path.exists(file_path):
+                print(f"Dictionary file not found: {file_path}")
+                self._dictionary = {}
+                return
 
             wb = load_workbook(file_path)
             sheet = wb.active
@@ -26,7 +39,6 @@ class DictionaryModel():
                 english_value = english_cell.value
                 russian_value = russian_cell.value
 
-                """Merged cells check"""
                 if english_value is None or str(english_value).strip() == "":
                     english_str = last_english_word
                 else:
@@ -43,13 +55,13 @@ class DictionaryModel():
                     self._dictionary[english_str].append(russian_str)
 
             wb.close()
+            print(f"Loaded {len(self._dictionary)} words from {file_path}")
 
-        except FileNotFoundError:
-            self._dictionary = {}
-        except ImportError:
+        except Exception as e:
+            print(f"Error loading dictionary: {e}")
             self._dictionary = {}
 
-    def get_translation(self, word: str) -> str | None:
+    def get_translation(self, word: str) -> Optional[str]:
         if not word or not isinstance(word, str):
             return None
 
@@ -82,7 +94,7 @@ class DictionaryModel():
 
         return matches
 
-    def find_similar_words_with_priority(self, word: str, limit: int = 10) -> List[str]:
+    def find_similar_words_with_priority(self, word: str, limit: int = 7) -> List[str]:
         if not word or not isinstance(word, str):
             return []
 
